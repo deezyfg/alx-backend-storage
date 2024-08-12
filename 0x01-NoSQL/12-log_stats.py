@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
-"""Module for generating statistics from Nginx logs stored in MongoDB."""
+"""Module for retrieving statistics from Nginx logs stored in MongoDB."""
 
-import pymongo as pm
+from pymongo import MongoClient
 
-# Connect to MongoDB and access the logs database and nginx collection
-db = pm.MongoClient()
-mydb = db["logs"]
-mycol = mydb["nginx"]
+
+def print_nginx_stats():
+    """Prints statistics about Nginx logs from MongoDB."""
+    # Connect to MongoDB and access the nginx collection
+    client = MongoClient('mongodb://127.0.0.1:27017')
+    nginx_collection = client.logs.nginx
+
+    # Count total number of log entries
+    total_logs = nginx_collection.count_documents({})
+    print(f'{total_logs} logs')
+
+    # Count log entries for each HTTP method
+    methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    print('Methods:')
+    for method in methods:
+        count = nginx_collection.count_documents({"method": method})
+        print(f'\tmethod {method}: {count}')
+
+    # Count GET requests to the /status path
+    status_check_count = nginx_collection.count_documents(
+        {"method": "GET", "path": "/status"}
+    )
+    print(f'{status_check_count} status check')
+
 
 if __name__ == "__main__":
-    # Count documents for each HTTP method and total logs
-    get_get = mycol.count_documents({"method": "GET"})
-    get_post = mycol.count_documents({"method": "POST"})
-    get_put = mycol.count_documents({"method": "PUT"})
-    get_patch = mycol.count_documents({"method": "PATCH"})
-    get_delete = mycol.count_documents({"method": "DELETE"})
-    get_total = mycol.count_documents({})
-    get_status = mycol.count_documents({"method": "GET", "path": "/status"})
-
-    # Print the total number of logs and method counts
-    print("{} logs".format(get_total))
-    print(
-        "Methods:\n\tmethod GET: {}\n\tmethod POST: {}\n\tmethod PUT: {}\n\t"
-        "method PATCH: {}\n\tmethod DELETE: {}".format(
-            get_get, get_post, get_put, get_patch, get_delete
-        )
-    )
-    print("{} status check".format(get_status))
+    print_nginx_stats()
